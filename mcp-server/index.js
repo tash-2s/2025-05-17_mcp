@@ -10,10 +10,11 @@ const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL ?? 'claude-3-7-sonnet-20250219';
 
 // Directories where content is stored
-// Use __dirname to ensure paths are relative to this script's location
+// Point to the web-server directories where content is actually stored
 const BASE_DIR = path.dirname(new URL(import.meta.url).pathname);
-const TRANSCRIPTS_DIR = path.join(BASE_DIR, 'transcripts');
-const IMAGES_DIR = path.join(BASE_DIR, 'images');
+const WEB_SERVER_DIR = path.join(BASE_DIR, '..', 'web-server');
+const TRANSCRIPTS_DIR = path.join(WEB_SERVER_DIR, 'transcripts');
+const IMAGES_DIR = path.join(WEB_SERVER_DIR, 'images');
 const LOGS_DIR = path.join(BASE_DIR, 'logs');
 
 // Ensure logs directory exists
@@ -274,7 +275,7 @@ async function answerFromContext(params) {
 
   // If Claude identified a relevant image, prepare it first
   let responseContent = [];
-  
+
   // Add image first to avoid order swapping issues in some clients
   if (relevantImageTimestamp) {
     const image = await getCorrespondingImage(`${relevantImageTimestamp}.txt`);
@@ -287,11 +288,11 @@ async function answerFromContext(params) {
       });
     }
   }
-  
+
   // Then add text answer
-  responseContent.push({ 
-    type: "text", 
-    text: answer 
+  responseContent.push({
+    type: "text",
+    text: answer
   });
 
   return { content: responseContent };
