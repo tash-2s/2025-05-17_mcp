@@ -4,6 +4,8 @@
     - !<own> 00000000-0000-0065-0000-000000000064
     - !<own> 0005641c-028d-459a-0000-000000014b4d
     - !<own> 5aa0f98b-e799-448c-a2dc-cae5d04fa2a4
+    - !<own> 62f67e22-5d06-44ba-904d-9efa7eebebea
+    - !<own> c394bf0c-aca2-43f4-9b03-c012daf5f1d0
   layers: !<Layers/267ee9a7-aff2-4f9d-9a49-f71214747d03>
     userLayers:
       []
@@ -566,6 +568,22 @@
     - !<own> 1fe1071f-e06a-40b7-aaaa-8f669d48c544
   Components:
     []
+- !<ScriptComponent/2d108bb9-80b2-43b1-9609-369335a3b187>
+  PrefabRemaps:
+    []
+  Name: Speech
+  Enabled: true
+  ScriptAsset: !<reference> a9d87077-2c57-4048-b9fa-4dccdfd1ed63
+  ScriptInputsDefault:
+    transcriptionText: true
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      transcriptionText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+  ScriptTypes:
+    "":
+      {}
 - !<SceneObject/2fa6895d-6663-4624-9e74-6b038b982135>
   PrefabRemaps:
     []
@@ -937,6 +955,21 @@
     - !<own> 974e2072-cd2a-4664-8d91-d71bbcd60d54
   Components:
     []
+- !<SceneObject/522e686a-bde8-44c8-900b-a4cb4de9f20f>
+  PrefabRemaps:
+    []
+  Name: CameraInput
+  Enabled: true
+  Layers: 1
+  LocalTransform:
+    position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    hasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> d6443b15-8049-4409-8fbe-81446760f7db
 - !<SceneObject/541a1667-fb17-43bf-bd3b-7b713063d3f7>
   PrefabRemaps:
     []
@@ -1238,6 +1271,23 @@
     - !<own> c2a3f250-ea25-4d54-a533-abe839f9bceb
   Components:
     []
+- !<SceneObject/62f67e22-5d06-44ba-904d-9efa7eebebea>
+  PrefabRemaps:
+    []
+  Name: TS
+  Enabled: true
+  Layers: 1
+  LocalTransform:
+    position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    hasSegmentScaleCompensation: false
+  Children:
+    - !<own> 81d4014f-11ea-41d7-acc4-8b04b167fdc3
+    - !<own> d10218e1-b981-4247-8308-69e3b42a395b
+    - !<own> 522e686a-bde8-44c8-900b-a4cb4de9f20f
+  Components:
+    []
 - !<SceneObject/6592fd98-8ae7-43b2-9e0d-b63edeaac767>
   PrefabRemaps:
     []
@@ -1303,6 +1353,26 @@
   BlendNormals: false
   BlendShapes:
     {}
+- !<ScriptComponent/6d383128-aee6-419d-8c11-0f559a4df5c6>
+  PrefabRemaps:
+    []
+  Name: CameraOutput
+  Enabled: true
+  ScriptAsset: !<reference> 3ccce2d0-2aec-4430-ae6b-6a9380e44cea
+  ScriptInputsDefault:
+    cameraImage: true
+    keywordsText: true
+    captureInterval: true
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      cameraImage: !<reference.Image> 00000000-0000-0000-0000-000000000000
+      keywordsText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      captureInterval: !<float> 5.000000
+  ScriptTypes:
+    "":
+      {}
 - !<SceneObject/6dc5dd7a-4726-4cb6-b42f-a12f4b6416c3>
   PrefabRemaps:
     []
@@ -1500,6 +1570,21 @@
     - !<own> cca13a50-a590-4864-94ca-c7b3aa5951ed
   Components:
     []
+- !<SceneObject/81d4014f-11ea-41d7-acc4-8b04b167fdc3>
+  PrefabRemaps:
+    []
+  Name: Speech
+  Enabled: true
+  Layers: 1
+  LocalTransform:
+    position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    hasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> 2d108bb9-80b2-43b1-9609-369335a3b187
 - !<SceneObject/85b990fe-4a77-4e85-b87e-28981b812dd8>
   PrefabRemaps:
     []
@@ -1933,6 +2018,25 @@
     - !<own> 11fcf3ea-da8b-4694-80a7-167693341344
   Components:
     - !<own> 3bbf27ea-a24a-4d9f-84a6-56b5830bb48e
+- !<Image/c2ed8459-7a28-4441-b373-2df6e47f3fb3>
+  PrefabRemaps:
+    []
+  Name: Image
+  Enabled: true
+  RenderOrder: 0
+  StretchMode: Fit
+  VerticalAlignment: Center
+  HorizontalAlignment: Center
+  MeshShadowMode: None
+  ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+  ShadowDensity: 1.000000
+  Materials:
+    - !<reference> 0ca0f6ae-8758-4c20-b2b6-54c383bb2f14
+  FlipX: false
+  FlipY: false
+  RotationAngle: 0
+  Pivot: {x: 0.000000, y: 0.000000}
+  ExtentsTarget: !<reference> 00000000-0000-0000-0000-000000000000
 - !<SceneObject/c379df8f-498c-4c54-a558-bb0a021b9dad>
   PrefabRemaps:
     []
@@ -1948,6 +2052,21 @@
     - !<own> 80e9d924-bd3c-4176-9c52-05a2603b2a4e
   Components:
     []
+- !<SceneObject/c394bf0c-aca2-43f4-9b03-c012daf5f1d0>
+  PrefabRemaps:
+    []
+  Name: CameraFeed
+  Enabled: false
+  Layers: 1
+  LocalTransform:
+    position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    scale: {x: 32.000000, y: 32.000000, z: 32.000000}
+    hasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> c2ed8459-7a28-4441-b373-2df6e47f3fb3
 - !<SceneObject/c5f1f0e9-6707-4a13-9453-fbf92b4eba12>
   PrefabRemaps:
     []
@@ -2112,6 +2231,21 @@
     - !<own> 7dbdd563-5651-4640-8d68-0be06bbb0b57
   Components:
     - !<own> b426d87f-c8a6-47bf-a64e-7be86f43921d
+- !<SceneObject/d10218e1-b981-4247-8308-69e3b42a395b>
+  PrefabRemaps:
+    []
+  Name: CameraOutput
+  Enabled: true
+  Layers: 1
+  LocalTransform:
+    position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    hasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> 6d383128-aee6-419d-8c11-0f559a4df5c6
 - !<SceneObject/d3340ef4-90e8-49c1-aeb6-4194ed9937f9>
   PrefabRemaps:
     []
@@ -2157,6 +2291,22 @@
     - !<own> 6bf04e34-6299-4f27-8f48-259345a32666
   Components:
     []
+- !<ScriptComponent/d6443b15-8049-4409-8fbe-81446760f7db>
+  PrefabRemaps:
+    []
+  Name: CameraInput
+  Enabled: true
+  ScriptAsset: !<reference> 6f37aa09-51ef-4797-8fff-476ddab86ec0
+  ScriptInputsDefault:
+    uiImage: true
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      uiImage: !<reference.Image> 00000000-0000-0000-0000-000000000000
+  ScriptTypes:
+    "":
+      {}
 - !<SceneObject/d8ce2d41-6bdf-4d37-beb2-a693b7e1d24c>
   PrefabRemaps:
     []
