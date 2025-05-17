@@ -175,7 +175,7 @@ export class CameraOutput extends BaseScriptComponent {
                 mediaType: "image/jpeg"
             };
 
-            const request = new Request("https://updating-terminal-passion-block.trycloudflare.com/media", {
+            const request = new Request("http://localhost:3000/media", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
