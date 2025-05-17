@@ -24,16 +24,17 @@ metaInfo:
     []
   tags:
     []
-  lensName: Specs Starter
+  lensName: MCP Hackathon
   lensDescriptors:
-    []
+    - EXPERIMENTAL_API
+    - GEN_AI_ICON
   lensApplicability:
     - Front
     - Back
   lensClientCompatibilities:
     - Spectacles
   platformBundlesEnabled: false
-  iconHash: ""
+  iconHash: d036f3d5b1ecba3bea12b726a7fd51ca
   videoPreviewHash: ""
   fromTemplateName: Spectacles
   fromTemplateUrl: Lens Studio 5.9.1.25051422
