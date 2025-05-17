@@ -575,12 +575,12 @@
   Enabled: true
   ScriptAsset: !<reference> a9d87077-2c57-4048-b9fa-4dccdfd1ed63
   ScriptInputsDefault:
-    transcriptionText: true
+    {}
   ScriptTypesDefault:
     {}
   ScriptInputs:
     "":
-      transcriptionText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      transcriptionText: !<reference.Text> 8ee301e1-7cee-4bc3-b7a4-edcf989dca8e
   ScriptTypes:
     "":
       {}
@@ -1499,15 +1499,13 @@
   Enabled: true
   ScriptAsset: !<reference> 3ccce2d0-2aec-4430-ae6b-6a9380e44cea
   ScriptInputsDefault:
-    cameraImage: true
-    keywordsText: true
     captureInterval: true
   ScriptTypesDefault:
     {}
   ScriptInputs:
     "":
-      cameraImage: !<reference.Image> 00000000-0000-0000-0000-000000000000
-      keywordsText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      cameraImage: !<reference.Image> c2ed8459-7a28-4441-b373-2df6e47f3fb3
+      keywordsText: !<reference.Text> 30b35f09-761e-4f48-b713-93ad4a493cec
       captureInterval: !<float> 5.000000
   ScriptTypes:
     "":
@@ -2633,12 +2631,12 @@
   Enabled: true
   ScriptAsset: !<reference> 6f37aa09-51ef-4797-8fff-476ddab86ec0
   ScriptInputsDefault:
-    uiImage: true
+    {}
   ScriptTypesDefault:
     {}
   ScriptInputs:
     "":
-      uiImage: !<reference.Image> 00000000-0000-0000-0000-000000000000
+      uiImage: !<reference.Image> c2ed8459-7a28-4441-b373-2df6e47f3fb3
   ScriptTypes:
     "":
       {}
