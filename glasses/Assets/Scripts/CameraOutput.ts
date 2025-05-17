@@ -164,6 +164,8 @@ export class CameraOutput extends BaseScriptComponent {
             return;
         }
 
+        print("oai keywords: " + keywords.join(", "));
+
         // Join keywords with commas and update the text component
         this.keywordsText.text = keywords.join(", ");
     }
