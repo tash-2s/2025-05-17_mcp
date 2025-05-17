@@ -28,16 +28,21 @@
   CurrentVisibility: Editable
   MaxVisibility: Editable
   ScriptInputsHidden:
-    {}
+    cameraImage: false
+    captureInterval: false
+    keywordsText: false
   ScriptTypesHidden:
     {}
   ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
   DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
   DefaultScriptInputs:
-    -
-      {}
+    - cameraImage: !<reference.Image> 00000000-0000-0000-0000-000000000000
+      keywordsText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      captureInterval: !<float> 5.000000
   ScriptTypes:
     -
       {}
   InputLines:
-    []
+    - '// @input Component.Image cameraImage {"hint":"The image that displays the camera feed"}'
+    - '// @input Component.Text keywordsText {"label":"Keywords Text", "hint":"Text component to display keywords"}'
+    - '// @input float captureInterval = 5 {"hint":"Time interval between captures in seconds"}'
