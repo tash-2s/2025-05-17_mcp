@@ -54,7 +54,7 @@ const CONFIG = {
 // ============================================================================
 
 /**
- * Ensures the given directory exists (mkdir -p behaviour).
+ * Ensures the given directory exists (mkdir -p behavior).
  */
 async function ensureDir(dir) {
   await mkdir(dir, { recursive: true });
