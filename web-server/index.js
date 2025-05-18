@@ -27,13 +27,31 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { Buffer } from 'node:buffer';
 
-const PORT = process.env.PORT ?? 3000;
-const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
-const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL ?? 'claude-3-7-sonnet-20250219';
+// ============================================================================
+// Configuration
+// ============================================================================
 
-// Output directories – created lazily on first use
-const TRANSCRIPTS_DIR = path.resolve('./transcripts');
-const IMAGES_DIR = path.resolve('./images');
+const CONFIG = {
+  server: {
+    port: process.env.PORT ?? 3000
+  },
+  api: {
+    anthropic: {
+      key: process.env.ANTHROPIC_API_KEY,
+      model: process.env.ANTHROPIC_MODEL ?? 'claude-3-7-sonnet-20250219',
+      baseUrl: 'https://api.anthropic.com/v1/messages',
+      apiVersion: '2023-06-01'
+    }
+  },
+  paths: {
+    transcripts: path.resolve('./transcripts'),
+    images: path.resolve('./images')
+  }
+};
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
 
 /**
  * Ensures the given directory exists (mkdir -p behaviour).
@@ -52,6 +70,10 @@ function timestampName() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
 }
 
+// ============================================================================
+// API Service
+// ============================================================================
+
 /**
  * Calls Anthropic's Messages API (vision) to describe a base64 image.
  * @param {string} base64Data – image bytes encoded as base64 (PNG/JPEG/…)
@@ -59,11 +81,11 @@ function timestampName() {
  * @returns {Promise<string>} – the model's textual description
  */
 async function describeImageWithAnthropic(base64Data, mediaType) {
-  if (!ANTHROPIC_KEY)
+  if (!CONFIG.api.anthropic.key)
     throw new Error('Anthropic API key missing (set ANTHROPIC_API_KEY)');
 
   const body = {
-    model: ANTHROPIC_MODEL,
+    model: CONFIG.api.anthropic.model,
     max_tokens: 1024,
     messages: [
       {
@@ -86,12 +108,12 @@ async function describeImageWithAnthropic(base64Data, mediaType) {
     ],
   };
 
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+  const resp = await fetch(CONFIG.api.anthropic.baseUrl, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      'x-api-key': ANTHROPIC_KEY,
-      'anthropic-version': '2023-06-01',
+      'x-api-key': CONFIG.api.anthropic.key,
+      'anthropic-version': CONFIG.api.anthropic.apiVersion,
     },
     body: JSON.stringify(body),
   });
@@ -107,6 +129,92 @@ async function describeImageWithAnthropic(base64Data, mediaType) {
   return contentBlock?.text ?? 'No description returned.';
 }
 
+// ============================================================================
+// Request Handlers
+// ============================================================================
+
+/**
+ * Handles the /echo endpoint request
+ */
+async function handleEchoRequest(req, res) {
+  try {
+    const body = await consumeJSON(req);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ received: body }, null, 2));
+  } catch {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Invalid JSON' }));
+  }
+}
+
+/**
+ * Handles the /media endpoint request for transcript uploads
+ */
+async function handleTranscriptUpload(body, res) {
+  await ensureDir(CONFIG.paths.transcripts);
+  const filename = `${timestampName()}.txt`;
+  const filepath = path.join(CONFIG.paths.transcripts, filename);
+  await writeFile(filepath, body.transcript, 'utf8');
+
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ saved: path.relative('.', filepath) }));
+}
+
+/**
+ * Handles the /media endpoint request for image uploads
+ */
+async function handleImageUpload(body, res) {
+  // Determine media type (default to PNG if not provided)
+  const mediaType = body.mediaType ?? 'image/png';
+  await ensureDir(CONFIG.paths.images);
+  const baseName = timestampName();
+  const imgPath = path.join(CONFIG.paths.images, `${baseName}.${mediaType.split('/')[1]}`);
+  const txtPath = path.join(CONFIG.paths.images, `${baseName}.txt`);
+
+  // Save image file
+  await writeFile(imgPath, Buffer.from(body.image, 'base64'));
+
+  // Call Anthropic to describe the image
+  const description = await describeImageWithAnthropic(body.image, mediaType);
+  await writeFile(txtPath, description, 'utf8');
+
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(
+    JSON.stringify({ saved_image: path.relative('.', imgPath), description_file: path.relative('.', txtPath) })
+  );
+}
+
+/**
+ * Handles the /media endpoint request
+ */
+async function handleMediaRequest(req, res) {
+  try {
+    const body = await consumeJSON(req);
+
+    // Expect either { transcript: "..." } OR { image: "base64Data", mediaType?: "image/png" }
+    if (typeof body.transcript === 'string') {
+      await handleTranscriptUpload(body, res);
+      return;
+    }
+
+    if (typeof body.image === 'string') {
+      await handleImageUpload(body, res);
+      return;
+    }
+
+    // If neither transcript nor image provided
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Request must include a "transcript" or "image" field.' }));
+  } catch (err) {
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: err.message }));
+  }
+}
+
+// ============================================================================
+// Server Setup
+// ============================================================================
+
 const server = createServer(async (req, res) => {
   const { pathname } = new URL(req.url, `http://${req.headers.host}`);
 
@@ -118,65 +226,14 @@ const server = createServer(async (req, res) => {
     console.log(`← ${req.method} ${pathname} ${res.statusCode} ${durationMs.toFixed(1)}ms`);
   });
 
-  // -------- POST /echo ------------------------------------------------------
+  // -------- Route handling ------------------------------------------------
   if (req.method === 'POST' && pathname === '/echo') {
-    try {
-      const body = await consumeJSON(req);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ received: body }, null, 2));
-    } catch {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Invalid JSON' }));
-    }
+    await handleEchoRequest(req, res);
     return;
   }
 
-  // -------- POST /media -----------------------------------------------------
   if (req.method === 'POST' && pathname === '/media') {
-    try {
-      const body = await consumeJSON(req);
-
-      // Expect either { transcript: "..." } OR { image: "base64Data", mediaType?: "image/png" }
-      if (typeof body.transcript === 'string') {
-        await ensureDir(TRANSCRIPTS_DIR);
-        const filename = `${timestampName()}.txt`;
-        const filepath = path.join(TRANSCRIPTS_DIR, filename);
-        await writeFile(filepath, body.transcript, 'utf8');
-
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ saved: path.relative('.', filepath) }));
-        return;
-      }
-
-      if (typeof body.image === 'string') {
-        // Determine media type (default to PNG if not provided)
-        const mediaType = body.mediaType ?? 'image/png';
-        await ensureDir(IMAGES_DIR);
-        const baseName = timestampName();
-        const imgPath = path.join(IMAGES_DIR, `${baseName}.${mediaType.split('/')[1]}`);
-        const txtPath = path.join(IMAGES_DIR, `${baseName}.txt`);
-
-        // Save image file
-        await writeFile(imgPath, Buffer.from(body.image, 'base64'));
-
-        // Call Anthropic to describe the image
-        const description = await describeImageWithAnthropic(body.image, mediaType);
-        await writeFile(txtPath, description, 'utf8');
-
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(
-          JSON.stringify({ saved_image: path.relative('.', imgPath), description_file: path.relative('.', txtPath) })
-        );
-        return;
-      }
-
-      // If neither transcript nor image provided
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Request must include a "transcript" or "image" field.' }));
-    } catch (err) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: err.message }));
-    }
+    await handleMediaRequest(req, res);
     return;
   }
 
@@ -185,8 +242,12 @@ const server = createServer(async (req, res) => {
   res.end(JSON.stringify({ error: 'Not found' }));
 });
 
-server.listen(PORT, () => {
-  console.log(`🚀  Listening on http://localhost:${PORT}/echo and /media`);
+// ============================================================================
+// Server Startup
+// ============================================================================
+
+server.listen(CONFIG.server.port, () => {
+  console.log(`🚀  Listening on http://localhost:${CONFIG.server.port}/echo and /media`);
 });
 
 // Graceful shutdown

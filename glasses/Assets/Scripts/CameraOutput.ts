@@ -1,5 +1,12 @@
 @component
 export class CameraOutput extends BaseScriptComponent {
+    // Constants
+    private static readonly API_ENDPOINT = "http://localhost:3000/media";
+    private static readonly OPENAI_API_ENDPOINT = "https://api.openai.com/v1/chat/completions";
+    private static readonly OPENAI_MODEL = "gpt-4o-mini";
+    private static readonly MIN_CAPTURE_INTERVAL = 1.0;
+    
+    // Component inputs
     @input
     @hint("The image that displays the camera feed")
     cameraImage: Image;
@@ -23,37 +30,59 @@ export class CameraOutput extends BaseScriptComponent {
     private isProcessing: boolean = false;
     private lastCaptureTime: number = 0;
 
+    /**
+     * Component initialization
+     */
     onAwake() {
         this.remoteServiceModule = require("LensStudio:InternetModule");
+        this.setupEventHandlers();
+    }
 
-        // Set up events
+    /**
+     * Set up event handlers for component
+     */
+    private setupEventHandlers() {
+        // Update handler - check if it's time to capture a new frame
         this.createEvent("UpdateEvent").bind(() => {
             const currentTime = getTime();
-
-            // Check if it's time to capture
-            if (currentTime - this.lastCaptureTime >= this.captureInterval && !this.isProcessing) {
+            const intervalElapsed = currentTime - this.lastCaptureTime >= this.captureInterval;
+            
+            if (intervalElapsed && !this.isProcessing) {
                 this.lastCaptureTime = currentTime;
                 this.captureAndProcessFrame();
             }
         });
 
+        // Start handler - validate inputs and initialize
         this.createEvent("OnStartEvent").bind(() => {
-            // Verify inputs
-            if (!this.cameraImage) {
-                print("ERROR: Please assign a camera image in the inspector");
-                return;
+            this.validateInputs();
+            
+            if (this.keywordsText) {
+                this.keywordsText.text = "";
             }
-
-            if (!this.keywordsText) {
-                print("ERROR: Please assign a text component for keywords display");
-                return;
-            }
-
-            // Initialize keywords text to empty
-            this.keywordsText.text = "";
         });
     }
 
+    /**
+     * Validate required component inputs
+     */
+    private validateInputs(): boolean {
+        if (!this.cameraImage) {
+            print("ERROR: Please assign a camera image in the inspector");
+            return false;
+        }
+
+        if (!this.keywordsText) {
+            print("ERROR: Please assign a text component for keywords display");
+            return false;
+        }
+        
+        return true;
+    }
+
+    /**
+     * Capture and process a camera frame
+     */
     private async captureAndProcessFrame() {
         if (this.isProcessing) {
             return;
@@ -71,11 +100,11 @@ export class CameraOutput extends BaseScriptComponent {
 
             const base64Image = await this.encodeTextureToBase64(texture);
 
-            // Send to local server without waiting for it
-            this.sendToLocalServer(base64Image);
-
-            // Only wait for OpenAI response
-            await this.sendToOpenAI(base64Image);
+            // Process in parallel
+            await Promise.all([
+                this.sendToLocalServer(base64Image),
+                this.sendToOpenAI(base64Image)
+            ]);
         } catch (error) {
             print("ERROR: " + error);
         } finally {
@@ -83,6 +112,9 @@ export class CameraOutput extends BaseScriptComponent {
         }
     }
 
+    /**
+     * Encode a texture to base64 string
+     */
     private encodeTextureToBase64(texture: Texture): Promise<string> {
         return new Promise<string>((resolve, reject) => {
             Base64.encodeTextureAsync(
@@ -95,9 +127,12 @@ export class CameraOutput extends BaseScriptComponent {
         });
     }
 
+    /**
+     * Send image to OpenAI for object detection
+     */
     private async sendToOpenAI(base64Image: string) {
         const requestPayload = {
-            model: "gpt-4o-mini",
+            model: CameraOutput.OPENAI_MODEL,
             messages: [
                 {
                     role: "system",
@@ -121,7 +156,7 @@ export class CameraOutput extends BaseScriptComponent {
             ]
         };
 
-        const request = new Request("https://api.openai.com/v1/chat/completions", {
+        const request = new Request(CameraOutput.OPENAI_API_ENDPOINT, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -132,24 +167,10 @@ export class CameraOutput extends BaseScriptComponent {
 
         try {
             let response = await this.remoteServiceModule.fetch(request);
+            
             if (response.status === 200) {
                 let responseData = await response.json();
-                let contentText = responseData.choices[0].message.content;
-
-                // Extract JSON from the response
-                let jsonMatch = contentText.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    try {
-                        let keywordsData = JSON.parse(jsonMatch[0]);
-                        this.updateKeywordsDisplay(keywordsData.keywords);
-                    } catch (e) {
-                        print("ERROR parsing JSON response: " + e);
-                        print("Raw response: " + contentText);
-                    }
-                } else {
-                    print("ERROR: Could not extract JSON from response");
-                    print("Raw response: " + contentText);
-                }
+                this.processOpenAIResponse(responseData);
             } else {
                 print("ERROR: API request failed with status " + await (response.text()));
             }
@@ -158,6 +179,30 @@ export class CameraOutput extends BaseScriptComponent {
         }
     }
 
+    /**
+     * Process the response from OpenAI
+     */
+    private processOpenAIResponse(responseData: any) {
+        try {
+            let contentText = responseData.choices[0].message.content;
+
+            // Extract JSON from the response
+            let jsonMatch = contentText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                let keywordsData = JSON.parse(jsonMatch[0]);
+                this.updateKeywordsDisplay(keywordsData.keywords);
+            } else {
+                print("ERROR: Could not extract JSON from response");
+                print("Raw response: " + contentText);
+            }
+        } catch (e) {
+            print("ERROR parsing OpenAI response: " + e);
+        }
+    }
+
+    /**
+     * Update the UI with detected keywords
+     */
     private updateKeywordsDisplay(keywords: string[]) {
         if (!keywords || !Array.isArray(keywords)) {
             print("ERROR: Invalid keywords data");
@@ -170,14 +215,17 @@ export class CameraOutput extends BaseScriptComponent {
         this.keywordsText.text = keywords.join(", ");
     }
 
-    private sendToLocalServer(base64Image: string) {
+    /**
+     * Send image to local server for processing
+     */
+    private async sendToLocalServer(base64Image: string) {
         try {
             const localServerPayload = {
                 image: base64Image,
                 mediaType: "image/jpeg"
             };
 
-            const request = new Request("http://localhost:3000/media", {
+            const request = new Request(CameraOutput.API_ENDPOINT, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -186,19 +234,15 @@ export class CameraOutput extends BaseScriptComponent {
             });
 
             // Send without waiting for response
-            this.remoteServiceModule.fetch(request)
-                .then(async (response) => {
-                    if (response.status === 200) {
-                        print("Successfully sent image to local server");
-                    } else {
-                        print("WARNING: Failed to send image to local server, status: " + (await response.text()));
-                    }
-                })
-                .catch(error => {
-                    print("WARNING: Error sending image to local server: " + error);
-                });
+            const response = await this.remoteServiceModule.fetch(request);
+            
+            if (response.status === 200) {
+                print("Successfully sent image to local server");
+            } else {
+                print("WARNING: Failed to send image to local server, status: " + (await response.text()));
+            }
         } catch (error) {
-            print("WARNING: Error preparing local server request: " + error);
+            print("WARNING: Error sending image to local server: " + error);
         }
     }
 }
